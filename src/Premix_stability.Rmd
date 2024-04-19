@@ -1,0 +1,163 @@
+---
+title: "Cocktail/premix stability assesment"
+author: "Aguirre"
+date: "2024-04-07"
+output: word_document
+params:
+  df: !r NULL
+  mark: !r NULL
+  metric_type: !r NULL
+  anova_df: !r NULL
+---
+
+# Marker studied: `r mark`
+---------------------------------------------
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Supporting functions
+
+The following functions are designed to transform and visualize the data. df_format reshapes the dataframe for analysis, and markers_violin creates violin plots to visualize the distribution of marker values across different days.
+
+```{r echo=FALSE}
+
+df_format <- function(df){
+  df_formatted <- melt(df)
+  colnames(df_formatted) = c("id", "marker", "day", "value" )
+  df_formatted
+}
+
+
+markers_violin <- function(df, marker_name, title = "Violin Plot") {
+  ## The dataframe df must have a patient column, a marker column, and as many columns as there are days evaluated
+  ## patient   | marker | Day 1 | Day 2 | ... | Day n
+  ## patient1  | CD57   | 36.65 | 42.67 | ... | value n
+  df_formatted <- df_format(df) # Assuming df_format() reshapes the data appropriately for ggplot
+  p <- ggplot(data = df_formatted, aes(x = day, y = value)) +
+    geom_violin(trim = FALSE, alpha = 0.2, aes(fill = day)) +
+    geom_boxplot(alpha = 0.2, show.legend = FALSE, width = 0.3) +
+    geom_line(linetype = "dashed", linewidth = .6, aes(group = id), color = "gray20") +
+    geom_point(aes(colour = day), alpha = 1, size = 2) +
+    xlab("Day") + 
+    ylab(marker_name) +
+    ggtitle(title) + 
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5))
+  print(p)
+}
+
+
+```
+
+
+## ploting values of `r mark` through time
+
+The violin plot visualizes the distribution of marker values over time, offering an initial visual assessment of the stability of the antibody cocktail/premix.
+  
+```{r violin, echo=FALSE}
+  title = paste0("Violin Plot for ", params$mark, " (", params$metric_type, ")")
+  markers_violin(params$df, params$mark, title = title)
+```
+  
+Interpretation: The violin plot provides a visual assessment of the data's distribution across different days. Consistency in the shape of the distributions across days suggests stability in the reagent's performance over time. Significant variation could indicate instability or a change in reagent performance.  
+  
+```{r echo=FALSE, include=FALSE}
+# Set the variables for the statistical analysis
+  mark <- params$mark
+  df_melt <- df_format(params$df)
+```
+
+## ANOVA to test if the mean of the measures for `r mark` are different between each day
+
+ANOVA is performed to test if there are statistically significant differences in the mean values of the measures across different days. It helps in understanding if the stability of the antibody cocktail changes over time.
+
+```{r ANOVA}
+aov_out = aov(value~day, data = df_melt)
+print(summary(aov_out))
+```
+
+```{r ANOVA_df, echo=FALSE, include=FALSE}
+
+p_value <- summary(aov_out)[[1]][1,5]
+df_anova_temp <- data.frame(Marker = paste0(mark, "_", metric), p_value)
+anova_df <- rbind(anova_df, df_anova_temp)
+
+```
+
+Interpretation: A p-value less than 0.05 from the ANOVA test suggests that there are significant differences in the mean values across days, indicating potential instability in the reagent over time. A p-value greater than 0.05 suggests that the means are not significantly different, indicating stability.
+
+## TUKEY test 
+
+Following ANOVA, the Tukey post hoc test is conducted to identify specifically between which days the differences occur. This test is crucial for pinpointing the days that contribute to the overall difference detected by ANOVA.
+
+```{r Tukey}
+tukey_out = TukeyHSD(aov_out)
+print(tukey_out)
+```
+
+Interpretation: The Tukey post hoc test helps identify specific pairs of days between which significant differences exist. If certain days are identified as significantly different, this could pinpoint when changes in the reagent's stability occur. No significant pairwise differences would support the reagent's stability across the evaluated period.
+
+## Repeated Measures ANOVA
+
+This section involves a repeated measures ANOVA, which accounts for the same reagent being measured across different days. It provides a more precise analysis of the data considering the repeated measures aspect.
+
+```{r ANOVA_repeat}
+aov_out_repeated = aov(value~day + Error(id), data = df_melt)
+print(summary(aov_out_repeated))
+```
+
+Interpretation: Significant results (p < 0.05) indicate that there is a change in reagent performance over time when accounting for repeated measurements. This suggests instability in the reagent's effectiveness across the days tested.
+
+## Pairwise t-test with Bonferroni adjustment
+
+The pairwise t-test compares the means between each pair of days, adjusting for multiple comparisons using the Bonferroni method. It further explores the specific days between which significant differences exist.
+
+```{r t_test}
+pwc <- df_melt %>%
+    pairwise_t_test(
+      value ~ day, paired = TRUE,
+      p.adjust.method = "bonferroni"
+    )
+print(kable(as.data.frame(pwc)))
+```
+
+Interpretation: This analysis provides detailed comparisons between each pair of days. Significant results after Bonferroni adjustment are strong evidence of a difference in means between specific days, further pinpointing periods of instability.
+
+## Friedman test
+
+The Friedman test, a non-parametric alternative to the repeated measures ANOVA, is used to detect differences in the rankings across multiple related groups. It's particularly useful when the data does not meet the normality assumption.
+
+```{r Friedman}
+# make  a matrix suitable for friedman test
+df_simple <- df
+df_simple$marker <- NULL
+
+# run FRiedman test
+friedm <- friedman.test(as.matrix(df_simple))
+print(friedm)
+```
+
+Interpretation: A significant Friedman test result indicates that there are differences in the reagent's performance across different days, suggesting potential instability in conditions where the assumption of normality is not met.
+
+## Detailed analysis for Friedman test with Wilcoxon test
+
+After identifying overall differences with the Friedman test, a detailed pairwise comparison using the Wilcoxon test is conducted. It examines specific pairs of days for significant differences, adjusted with the Bonferroni method for multiple comparisons.
+
+```{r Fried_repeated}
+pwc <- df_melt %>%
+  wilcox_test(
+    value ~ day, paired = TRUE,
+    p.adjust.method = "bonferroni")
+print(kable(as.data.frame(pwc)))
+```
+
+Interpretation: Like the pairwise t-test with Bonferroni adjustment, significant results in the Wilcoxon test indicate specific days between which the reagent's performance varies significantly, useful for identifying non-parametric indications of instability.
+
+## CONCLUSION for `r mark`
+If repeated ANOVA and Wilcoxon test did not reach significancy, the reagent is stable for the duration assessed
+
+
+
