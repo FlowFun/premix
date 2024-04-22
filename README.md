@@ -21,7 +21,6 @@ This project focuses on assessing the stability of premixes used in manufacturin
 ### Executing Program
 1. Load the required libraries:
    ```R
-      library(readxl)
       library(ggplot2)
       library(reshape2)
       library(nlme)
@@ -29,6 +28,7 @@ This project focuses on assessing the stability of premixes used in manufacturin
       library(ggpubr)
       library(kableExtra)
       library(rstatix)
+      library(here)
    ```
 2. Execute the main analysis script located in the `src` directory:
    ```R
@@ -37,7 +37,7 @@ This project focuses on assessing the stability of premixes used in manufacturin
 
 ## Project Structure
 - `/bin`: Contains executable scripts or compiled binaries used in processing.
-- `/data`: Stores raw data files, typically in XLSX format.
+- `/data`: Stores raw data files, typically in csv format.
 - `/doc`: Documentation related to the project, including methodology and references.
 - `/results`: Outputs from the analyses, including generated reports.
 - `/src`: All R scripts necessary for the analysis.
@@ -53,7 +53,7 @@ This section outlines the key findings from the analysis. For comprehensive deta
 - Jean-Philippe Vial
 
 ## Acknowledgments
-- Thank you to R community for continous support
+- Thank you to R community for continuous support
 
 ## How to Contribute
 - Contributions via pull requests are welcome. For substantial changes, please open an issue first to discuss what you'd like to change.
