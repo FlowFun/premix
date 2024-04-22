@@ -1,4 +1,3 @@
-library(readxl)
 library(ggplot2)
 library(reshape2)
 library(nlme)
@@ -6,42 +5,44 @@ library(tidyverse)
 library(ggpubr)
 library(kableExtra)
 library(rstatix)
+library(here)
 
-## fichier R Markdown
+## R Markdown file that generate a report per Marker
 template_file <- "src/Premix_stability.Rmd"
 
 ## -----------------------------------------------##
 
 ## Percentage analysis dataset
-df_pct <- read_excel("data/stab_premix_pct.xlsx", sheet = "AT")
+df_pct <- read_csv(here("data", "stab_premix_pct.csv"))
 df_pct_split <- df_pct %>% 
   group_by(Marker) %>% 
   group_split()
 
 ## MFI analysis dataset
-df_MFI <- read_excel("data/stab_premix_MFI.xlsx", sheet = "AT")
+df_MFI <- read_csv(here("data", "stab_premix_mfi.csv"))
 df_MFI_split <- df_MFI %>% 
   group_by(Marker) %>% 
   group_split()
 
+## make a df wich summarize results
 results_df <- data.frame()
 results_df <- df_pct %>% 
   rowwise() %>% 
-  mutate(
+  summarise(
+    Patient = Patient,
+    Marker = Marker,
     mean = mean(c_across(`day 1`:`day 29`)),
     sd = sd(c_across(`day 1`:`day 29`)),
-    cv = sd / mean) %>%
-  ungroup() %>%
-  select(Marker, mean, cv) %>%  # Assuming you want to keep Marker for grouping
+    cv = sd / mean)
+
+
+result2 <- results_df %>%
   group_by(Marker) %>%
   summarise(
-    mean_of_mean = mean(mean, na.rm = TRUE),
-    mean_of_cv = mean(cv, na.rm = TRUE),
-    sd_of_cv = sd(cv, na.rm = TRUE)
+    mean_of_means=mean(mean),
+    sd_of_means = sd(mean),
+    cv_of_means = sd_of_means / mean_of_means
   )
-
-results_df <-cbind(df_pct[,1:2], results_df)
-    
 
 anova_df <- data.frame()
 
@@ -54,7 +55,7 @@ for (metric in metric_type) {
     mark <- df$Marker[[1]] 
 
     # output name definition
-    output_file <- paste0("C:/Users/mimouna/Documents/R/premix/results/", "rapport_", mark, metric, ".docx")
+    output_file <- paste0(here("results"), "/rapport_", mark, metric, ".docx")
   
     # Use rmarkdown::render pour generate report
     rmarkdown::render(input = template_file,
