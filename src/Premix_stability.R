@@ -12,31 +12,29 @@ template_file <- "src/Premix_stability.Rmd"
 
 ## -----------------------------------------------##
 
-## Percentage analysis dataset
-df_pct <- read_csv(here("data", "stab_premix_pct.csv"))
+## Percentage of positive cells (PCT) analysis dataset
+df_pct <- read_csv(here("data", "stab_premix_pct.csv"), show_col_types = FALSE)
 df_pct_split <- df_pct %>% 
-  group_by(Marker) %>% 
-  group_split()
+  group_split(Marker) 
 
-## MFI analysis dataset
-df_MFI <- read_csv(here("data", "stab_premix_mfi.csv"))
-df_MFI_split <- df_MFI %>% 
-  group_by(Marker) %>% 
-  group_split()
+## Median Fluorescence Intensity (MFI) analysis dataset
+df_mfi <- read_csv(here("data", "stab_premix_mfi.csv"), show_col_types = FALSE)
+df_mfi_split <- df_mfi %>% 
+  group_split(Marker) 
 
-## make a df wich summarize results
+## Make a df wich summarize results
 results_df <- data.frame()
 results_df <- df_pct %>% 
   rowwise() %>% 
   summarise(
     Patient = Patient,
     Marker = Marker,
-    mean = mean(c_across(`day 1`:`day 29`)),
-    sd = sd(c_across(`day 1`:`day 29`)),
+    mean = mean(c_across(contains("day"))),
+    sd = sd(c_across(contains("day"))),
     cv = sd / mean)
 
 
-result2 <- results_df %>%
+result_summary <- results_df %>%
   group_by(Marker) %>%
   summarise(
     mean_of_means=mean(mean),
@@ -46,11 +44,11 @@ result2 <- results_df %>%
 
 anova_df <- data.frame()
 
-##Loop through all markers as percentage of expression
-metric_type <- c("pct", "MFI")
+## Build reports with a loop through all markers as PCT and MFI
+metric_type <- c("pct", "mfi")
 for (metric in metric_type) {
   if (metric == "pct") {df_list <- df_pct_split}
-  if (metric == "MFI") {df_list <- df_MFI_split}
+  if (metric == "mfi") {df_list <- df_mfi_split}
   for (df in df_list) {
     mark <- df$Marker[[1]] 
 
@@ -61,10 +59,10 @@ for (metric in metric_type) {
     rmarkdown::render(input = template_file,
                       output_file = output_file,
                       params = list(df = df, mark = mark, metric_type = metric, anova_df = anova_df))
-    print(getwd())
   }
 }
 
 # Save summary of the datas to a csv file
 
-write.csv(results_df, "results/mean_cv.csv", row.names = FALSE)
+write.csv(results_df, here("results", "descriptive_long.csv"))
+write.csv(result_summary, here("results", "summary.csv"))
