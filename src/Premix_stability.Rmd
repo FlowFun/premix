@@ -14,7 +14,7 @@ params:
 ---------------------------------------------
 
 
-```{r setup, include=FALSE}
+```{r setup, include=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -35,7 +35,7 @@ markers_violin <- function(df, marker_name, title = "Violin Plot") {
   ## The dataframe df must have a patient column, a marker column, and as many columns as there are days evaluated
   ## patient   | marker | Day 1 | Day 2 | ... | Day n
   ## patient1  | CD57   | 36.65 | 42.67 | ... | value n
-  df_formatted <- df_format(df) # Assuming df_format() reshapes the data appropriately for ggplot
+  df_formatted <- df_format(df)
   p <- ggplot(data = df_formatted, aes(x = day, y = value)) +
     geom_violin(trim = FALSE, alpha = 0.2, aes(fill = day)) +
     geom_boxplot(alpha = 0.2, show.legend = FALSE, width = 0.3) +
@@ -75,6 +75,7 @@ Interpretation: The violin plot provides a visual assessment of the data's distr
 ANOVA is performed to test if there are statistically significant differences in the mean values of the measures across different days. It helps in understanding if the stability of the antibody cocktail changes over time.
 
 ```{r ANOVA}
+print(head(df_melt))
 aov_out = aov(value~day, data = df_melt)
 print(summary(aov_out))
 ```
