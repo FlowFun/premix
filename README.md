@@ -60,4 +60,4 @@ This section outlines the key findings from the analysis. For comprehensive deta
 - Please ensure to update tests appropriately.
 
 ## License
-This project is licensed under the [MIT License](LICENSE.txt).
+This project is licensed under the [GNU General Public License (GPL)](LICENSE.txt).
