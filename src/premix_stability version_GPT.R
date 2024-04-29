@@ -1,15 +1,9 @@
-library(tidyverse)
-library(lubridate)
 library(here)
-
-library(ggplot2)
-library(reshape2)
-library(nlme)
-library(tidyverse)
-library(ggpubr)
 library(kableExtra)
+library(lubridate)
+library(reshape2)
 library(rstatix)
-library(here)
+library(tidyverse)
 
 # Read and split datasets by marker
 df_pct <- read_csv(here("data", "stab_premix_pct.csv"), show_col_types = FALSE) %>% 
@@ -42,9 +36,8 @@ result_summary <- results_df %>%
     .groups = 'drop'
   )
 
-
 # Generate reports for each marker and metric
-
+anova_df <- data.frame()
 template_file <- here("src", "Premix_stability.Rmd")
 for (metric in c("pct", "mfi")) {
   df_list <- if (metric == "pct") df_pct else df_mfi
@@ -57,7 +50,6 @@ for (metric in c("pct", "mfi")) {
                       params = list(df = df, mark = mark, metric_type = metric))
   })
 }
-
 
 # Save summaries to CSV
 write_csv(results_df, here("results", "descriptive_long.csv"))
