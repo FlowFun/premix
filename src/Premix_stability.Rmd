@@ -2,7 +2,7 @@
 title: "Cocktail/premix stability assesment"
 author: "Aguirre"
 date: "2024-04-07"
-output: word_document
+output: html_document
 params:
   df: !r NULL
   mark: !r NULL
@@ -37,15 +37,16 @@ markers_violin <- function(df, marker_name, title = "Violin Plot") {
   ## patient1  | CD57   | 36.65 | 42.67 | ... | value n
   df_formatted <- df_format(df)
   p <- ggplot(data = df_formatted, aes(x = day, y = value)) +
-    geom_violin(trim = FALSE, alpha = 0.2, aes(fill = day)) +
+    geom_violin(trim = FALSE, alpha = 0.2, aes(fill = day), show.legend = FALSE) +
     geom_boxplot(alpha = 0.2, show.legend = FALSE, width = 0.3) +
     geom_line(linetype = "dashed", linewidth = .6, aes(group = id), color = "gray20") +
-    geom_point(aes(colour = day), alpha = 1, size = 2) +
+    geom_point(aes(shape = id), alpha = 1, size = 2) +
     xlab("Day") + 
     ylab(marker_name) +
     ggtitle(title) + 
     theme_bw() +
-    theme(plot.title = element_text(hjust = 0.5))
+    theme(plot.title = element_text(hjust = 0.5))+
+    scale_x_discrete(expand = expansion(add = 0.5))
   print(p)
 }
 
