@@ -1,0 +1,161 @@
+---
+title: "cOCKTAIL STABILITY VALIDATION FOR FLOW CYTOMETRY"
+author: "A. MIMOUN"
+date: '`r Sys.Date()`'
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 8
+    fig_width: 8
+    number_sections: yes
+    toc: yes
+  html_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height=10, fig.width=13, warning = FALSE)
+```
+
+# Introduction
+
+Initially, we aim to visualize the evolution of biological markers over time. Next, we will look into whether the aging of premix reagents impacts the measurements.
+
+# Loading Data, R Packages, and Useful Functions
+
+```{r, message = FALSE}
+#Packages 
+library(readxl)
+library(ggplot2)
+library(reshape2)
+library(nlme)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+library(rstatix)
+```
+
+```{r, warning=FALSE, message = FALSE}
+###################
+# Import Datasets #
+###################
+A = as.data.frame(read_excel("stab_premix_at.xlsx", sheet = 9, col_names = T))
+rownames(A) = A[, 1]
+A = A[, -1]
+```
+
+# Visualization of Trajectories for the CD57 Marker
+
+Initially, we will visualize the temporal course of the CD57 variable for each patient. To do this, we start by formatting the data
+
+```{r}
+B = A[grep("CD57", rownames(A)), ]
+df = data.frame(melt(B), as.factor(rep(1:5, 9)))
+colnames(df) = c("Time", "CD57", "id")
+```
+
+
+```{r}
+p <- ggplot(data = df, aes(x = Time, y = CD57)) +
+geom_violin(trim = FALSE, alpha = 0.2, aes(fill = Time)) +
+geom_boxplot(alpha = 0.2, show.legend = FALSE, width = 0.3) +
+geom_line(linetype = "dashed", linewidth = .6, aes(group = id), 
+          color = "gray20") +
+geom_point(aes(colour = Time), alpha = 1, size = 2) +
+xlab("time") + ylab("CD57") + theme_bw()
+p
+```
+
+We observe the stability of the CD57 reagent over time, which we will now test using appropriate statistical methods. Here, we will test some methods.
+
+## Analysis of Variance
+
+We perform an analysis of variance using the `aov()` function.
+The goal of the analysis of variance is twofold:
+(i) Test if the mean of CD57 at time 1 is significantly different from
+the mean of CD57 at subsequent times.
+(ii) Test if overall time has an effect on the average level of CD57
+
+Out of curiosity, we calculate the mean of CD57 at different times.
+
+```{r}
+tapply(df$CD57, df$Time, mean)
+```
+
+The results of the analysis of variance, which test the overall link between the time factor and CD57, are reported below.
+
+```{r}
+aov_out = aov(CD57~Time, data = df)
+summary(aov_out)
+```
+
+As expected, we do not reject the null hypothesis since the p-value is equal to `r summary(aov_out)[[1]][1,5]`.
+
+Nevertheless, we can still look into pairwise differences.
+
+```{r}
+tukey_out = TukeyHSD(aov_out)
+print(tukey_out)
+```
+
+We observe that no mean difference of CD57 between $t_1$ and $t_j, j = {4, \ldots, 29}$ is significant.
+
+## Kruskal-Wallis Test
+
+We could be criticized for not having verified the conditions for using the analysis of variance. Its non-parametric counterpart, the Kruskal-Wallis test, is implemented here.
+
+```{r}
+kruskal_out = kruskal.test(CD57~Time, data = df)
+print(kruskal_out)
+```
+
+The Kruskal-Wallis test leads to the same conclusion, namely the non-rejection of the null hypothesis (p_value = `r round(kruskal_out$p.value, 4)`).
+
+## Repeated Measures ANOVA
+
+Finally, to account for the longitudinal nature of the data (repeated measures), we conduct a repeated measures analysis of variance.
+
+```{r}
+aov_out_repeated = aov(CD57 ~ Time + Error(id), data = df)
+summary(aov_out_repeated)
+```
+As evidenced by the p-value, the repeated measures ANOVA does not lead to the same conclusions. Let's examine the results more closely by making pairwise comparisons
+
+```{r}
+# pairwise comparisons using rstatix
+pwc <- df %>%
+  pairwise_t_test(
+    CD57 ~ Time, paired = TRUE,
+    p.adjust.method = "bonferroni"
+    )
+kable(as.data.frame(pwc))
+```
+
+These global differences detected by the repeated measures ANOVA do not withstand pairwise comparisons.
+
+## Friedman Test
+
+Finally, for fun, we can implement the Friedman test (seen as a non-parametric version of the repeated measures ANOVA)
+
+```{r}
+friedman.test(as.matrix(B))
+```
+
+The Friedman test returns the same conclusions as the repeated measures ANOVA... but still does not pass the test of multiple comparisons as evidenced by the table below.
+
+
+```{r}
+# pairwise comparisons using rstatix
+pwc <- df %>%wilcox_test(
+    CD57 ~ Time, paired = TRUE,
+    p.adjust.method = "bonferroni"
+    )
+kable(as.data.frame(pwc))
+```
+
+
+# Conclusion 
+
+The different approaches used lead to consistent results.
+
+Naturally, similar analyses can be conducted on other variables ("CD2", "CD7", "CD56", "CD19", "CD4_", "CD3", "CD5_", "Ly", "TRBC", "CD8", "HLADR") which should all lead to the same results. It's up to you to verify..
