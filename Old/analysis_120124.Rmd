@@ -1,0 +1,137 @@
+---
+title: "Premix"
+author: "The dream team"
+date: '`r Sys.Date()`'
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 8
+    fig_width: 8
+    number_sections: yes
+    toc: yes
+  html_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height=10, fig.width=13, warning = FALSE)
+```
+
+# Introduction
+
+Dans un premier temps, on cherche à visualiser l'évolution des marqueurs biologiques au cours du temps. On cherchera à voir si le viellissement des réactifs premix impacte les mesures. 
+
+# Chargement des données, des packages R et des fonctions utiles
+
+```{r, message = FALSE}
+#Packages 
+library(readxl)
+library(ggplot2)
+library(reshape2)
+library(nlme)
+```
+
+```{r, warning=FALSE, message = FALSE}
+###################
+# Import Datasets #
+###################
+A = as.data.frame(read_excel("stab_premix_at.xlsx", sheet = 9, col_names = T))
+rownames(A) = A[, 1]
+A = A[, -1]
+```
+
+# Visualisation des trajectoires pour le marqueur CD57
+
+Dans un premier temps, on va visualiser le décours temporel de la variable CD57 
+pour chacun des patients. Pour ce faire on commence par mettre en forme les données
+
+```{r}
+B = A[grep("CD57", rownames(A)), ]
+df = data.frame(melt(B), rep(1:5, 9))
+colnames(df) = c("Time", "CD57", "id")
+```
+
+
+```{r}
+p <- ggplot(data = df, aes(x = Time, y = CD57)) +
+geom_violin(trim = FALSE, alpha = 0.2, aes(fill = Time)) +
+geom_boxplot(alpha = 0.2, show.legend = FALSE, width = 0.3) +
+geom_line(linetype = "dashed", linewidth = .6, aes(group = id), 
+          color = "gray20") +
+geom_point(aes(colour = Time), alpha = 1, size = 2) +
+xlab("time") + ylab("CD57") + theme_bw()
+p
+```
+
+On constate une stabilité du réactif CD57 au cours du temps qu'il s'agit maintenant de tester à l'aide de méthodes statistiques appropriées. Nous allons ici tester quelques méthodes.
+
+## Analyse de la variance
+
+On réalise une analyse de la variance en utilisant la fonction `aov()`.
+L'objectif de l'analyse de la variance est double : 
+(i) Tester si la moyenne de CD57 au temps 1 est significativement différente de 
+la moyenne de CD57 aux temps suivants.
+(ii) Tester si globalement le temps a un effet sur le niveau moyen de CD57 
+
+Par curiosité, on calcule la moyenne de CD57 aux différents temps.
+
+```{r}
+tapply(df$CD57, df$Time, mean)
+```
+
+
+```{r}
+aov_out = aov(CD57~Time, data = df)
+tukey_out = TukeyHSD(aov_out)
+print(tukey_out)
+```
+
+
+```{r}
+plot(tukey_out, las = 1)
+```
+
+On constate qu'aucune différence de moyenne de CD57 entre $t_1$ et $t_j, j = \{4, \ldots, 29\}$ 
+n'est significative . 
+Les resultats de l'analyse de la variance permettant de tester globalement, 
+le lien entre le facteur temps et CD57 sont reportés ci-dessous.
+
+```{r}
+summary(aov_out)
+```
+
+Comme attendu, on ne rejette pas l'hypothèse nulle puisque la p-value est à égale à
+`r summary(aov_out)[[1]][1, 5]`.
+
+## Test de Kruskal-Wallis
+
+On nous reprocherait de ne pas avoir vérifier les conditions d'utilisation 
+de l'analyse de la variance. Son pendant non paramétrique, le test de Kruskal-Wallis, est ici mise en oeuvre.
+
+```{r}
+kruskal_out = kruskal.test(CD57~Time, data = df)
+print(kruskal_out)
+```
+
+Le test de Kruskal-Wallis conduit à la même conclusion, à savoir le non rejet 
+de l'hypothèse nulle (p_value = `r round(kruskal_out$p.value, 4)`).
+
+## Anova à mesures répétées
+
+Enfin, pour tenir compte du caractère longitudinal des données (mesures répétées), 
+on réalise une analyse de la variance à mesures répétées. 
+
+```{r}
+aov_out_repeated = aov(CD57 ~ Time + Error(id/Time), data = df)
+summary(aov_out_repeated)
+```
+
+Comme l'atteste la p-value, l'anova à mesures répétées conduit une nouvelle fois aux mêmes conclusions.
+
+# Conclusion 
+
+Les différentes approches utilisées conduisent à des résultats consistants.
+
+Naturellement, on peut réaliser des analyses similaires sur les autres variables
+("CD2", "CD7", "CD56", "CD19", "CD4_", "CD3", "CD5_", "Ly", "TRBC", "CD8", 
+"HLADR") qui devraient conduire toutes aux mêmes résultats. A vous de vérifier....
