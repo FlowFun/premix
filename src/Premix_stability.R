@@ -52,5 +52,5 @@ for (metric in c("pct", "mfi")) {
 }
 
 # Save summaries to CSV
-write_csv(results_df, here("results", "descriptive_long.csv"))
-write_csv(result_summary, here("results", "summary.csv"))
+write_csv(results_df, here("results", "descriptive_all patient.csv"))
+write_csv(result_summary, here("results", "summary_by_marker.csv"))
