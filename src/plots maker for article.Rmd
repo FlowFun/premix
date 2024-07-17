@@ -1,0 +1,55 @@
+---
+title: "graphes pour article"
+author: "Aguirre"
+date: "2024-07-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Boxplots summarizing datas
+
+
+```{r boxplot}
+# Load necessary libraries
+library(here)
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+# Read the data
+df <- read_csv(here("results", "descriptive_long.csv"), show_col_types = FALSE)
+# Filter data for Source = "PCT"
+df_pct <- subset(df, Source == "PCT")
+
+# Filter data for Source = "MFI"
+df_mfi <- subset(df, Source == "MFI")
+
+g_mfi <-ggplot(df_mfi, aes(x=Marker, y=Mean, fill=Marker, colour=Marker))+
+        scale_y_log10() +
+        geom_point(position=position_jitterdodge(dodge.width=0.7), size=2)+
+        geom_boxplot(alpha=0.5,outlier.alpha=0)+
+        xlab("Marker")+
+        ylab("Mean MFI Expression")+
+        theme_classic()+ 
+        theme(legend.position = "none")
+ggsave(here("results", "boxplot_MFI.png"), g_mfi)
+
+# Create a boxplot
+g_pct <-ggplot(df_pct, aes(x=Marker, y=Mean, fill=Marker, colour=Marker))+
+        geom_point(position=position_jitterdodge(dodge.width=0.7), size=2)+
+        geom_boxplot(alpha=0.5,outlier.alpha=0)+
+        xlab("Marker")+
+        ylab("Mean percentage of positive cells")+
+        theme_classic()+ 
+        theme(legend.position = "none")
+
+ggsave(here("results", "boxplot_PCT.png"), g_pct)
+g_pct
+g_mfi
+
+```
+
+
