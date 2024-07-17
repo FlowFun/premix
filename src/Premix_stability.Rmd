@@ -10,8 +10,22 @@ params:
   anova_df: !r NULL
 ---
 
-# Marker studied: `r mark`
+# Marker studied: `r mark`_`r metric_type`
 ---------------------------------------------
+
+<!-- ```{r temporary} -->
+<!-- # temporary for testing to delete afterward -->
+<!-- df_pct <- read_csv(here("data", "stab_premix_pct.csv"), show_col_types = FALSE) %>%  -->
+<!--   mutate(Source="PCT") %>% -->
+<!--   group_split(Marker) -->
+
+
+<!--   df <- df_pct[[1]] -->
+<!--   mark <- df$Marker[[1]] -->
+<!--   metric_type <-"pct" -->
+<!--   anova_df <- data.frame() -->
+<!-- ``` -->
+
 
 
 ```{r setup, include=TRUE}
@@ -20,7 +34,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Supporting functions
 
-The following functions are designed to transform and visualize the data. df_format reshapes the dataframe for analysis, and markers_violin creates violin plots to visualize the distribution of marker values across different days.
+The following functions are designed to transform and visualize the data:
+* `df_format()` reshapes the dataframe for analysis
+* `markers_violin()` creates violin plots to visualize the distribution of marker values across different days.
 
 ```{r echo=FALSE}
 
