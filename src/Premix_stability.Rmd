@@ -4,31 +4,16 @@ author: "Aguirre"
 date: "2024-04-07"
 output: html_document
 params:
-  df: !r NULL
-  mark: !r NULL
-  metric_type: !r NULL
-  anova_df: !r NULL
+  df: NULL
+  mark: NULL
+  metric_type: NULL
 ---
 
-# Marker studied: `r mark`_`r metric_type`
+# Marker studied: `r mark`_`r metric`
 ---------------------------------------------
 
-<!-- ```{r temporary} -->
-<!-- # temporary for testing to delete afterward -->
-<!-- df_pct <- read_csv(here("data", "stab_premix_pct.csv"), show_col_types = FALSE) %>%  -->
-<!--   mutate(Source="PCT") %>% -->
-<!--   group_split(Marker) -->
 
-
-<!--   df <- df_pct[[1]] -->
-<!--   mark <- df$Marker[[1]] -->
-<!--   metric_type <-"pct" -->
-<!--   anova_df <- data.frame() -->
-<!-- ``` -->
-
-
-
-```{r setup, include=TRUE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -39,7 +24,6 @@ The following functions are designed to transform and visualize the data:
 * `markers_violin()` creates violin plots to visualize the distribution of marker values across different days.
 
 ```{r echo=FALSE}
-
 df_format <- function(df){
   df_formatted <- melt(df)
   colnames(df_formatted) = c("id", "marker", "day", "value" )

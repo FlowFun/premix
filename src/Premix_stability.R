@@ -47,7 +47,9 @@ for (metric in c("pct", "mfi")) {
     output_file <- here("results", paste0("report_", mark, metric, ".html"))
     rmarkdown::render(input = template_file,
                       output_file = output_file,
-                      params = list(df = df, mark = mark, metric_type = metric))
+                      params = list(df = df, 
+                                    mark = mark, 
+                                    metric_type = metric))
   })
 }
 
